@@ -4,6 +4,9 @@ from sqlalchemy import String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
+_utcnow = lambda: datetime.datetime.now(datetime.timezone.utc)
+
+
 class Workspace(Base):
     __tablename__ = "workspaces"
 
@@ -11,11 +14,12 @@ class Workspace(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     # Relationships
     owner: Mapped["User"] = relationship(back_populates="workspaces")
     projects: Mapped[list["Project"]] = relationship(back_populates="workspace", cascade="all, delete-orphan")
+
 
 class Project(Base):
     __tablename__ = "projects"
@@ -24,7 +28,7 @@ class Project(Base):
     workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     # Relationships
     workspace: Mapped["Workspace"] = relationship(back_populates="projects")
@@ -33,6 +37,7 @@ class Project(Base):
     reviews: Mapped[list["CodeReview"]] = relationship(back_populates="project", cascade="all, delete-orphan")
     documents: Mapped[list["Document"]] = relationship(back_populates="project", cascade="all, delete-orphan")
     repositories: Mapped[list["GithubRepository"]] = relationship(back_populates="project", cascade="all, delete-orphan")
+
 
 class File(Base):
     __tablename__ = "files"
@@ -43,7 +48,7 @@ class File(Base):
     content: Mapped[str] = mapped_column(Text, default="")
     language: Mapped[str] = mapped_column(String(100), default="javascript")
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
     )
 
     # Relationships

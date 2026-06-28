@@ -42,7 +42,7 @@ const Analytics: React.FC = () => {
 
   const langData = Object.entries(data?.language_distribution || {}).map(([key, val]) => ({
     name: key,
-    value: val
+    value: val as any
   }));
 
   const actionData = Object.entries(data?.action_distribution || {}).map(([key, val]) => ({

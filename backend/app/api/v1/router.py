@@ -21,7 +21,7 @@ api_router.include_router(workspaces.router, prefix="/workspaces", tags=["Worksp
 api_router.include_router(projects.router, prefix="/projects", tags=["Projects"])
 api_router.include_router(files.router, prefix="/files", tags=["Files"])
 api_router.include_router(ai.router, prefix="/ai", tags=["AI Engine"])
-api_router.include_router(chat.router, prefix="/chats", tags=["Chat Sessions"])
+api_router.include_router(chat.router, prefix="/chat", tags=["AI Chat Sessions"])
 api_router.include_router(github.router, prefix="/github", tags=["Github Connect"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 api_router.include_router(admin.router, prefix="/admin", tags=["Administration"])

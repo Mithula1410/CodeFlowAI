@@ -1,5 +1,6 @@
 import psutil
 import platform
+from sqlalchemy import text
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database.session import get_db
@@ -17,13 +18,7 @@ def health_check(db: Session = Depends(get_db)):
         db.execute(text("SELECT 1"))
         db_connected = True
     except Exception:
-        # Fallback for SQLAlchemy 2.0 text syntax
-        from sqlalchemy import text
-        try:
-            db.execute(text("SELECT 1"))
-            db_connected = True
-        except Exception:
-            pass
+        pass
             
     # Check Redis
     redis_connected = is_redis_available()

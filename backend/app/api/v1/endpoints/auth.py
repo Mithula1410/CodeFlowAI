@@ -74,7 +74,7 @@ def login(
     refresh_token_str = create_refresh_token(user.id)
     
     # Save Refresh Token
-    expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
     db_refresh = RefreshToken(
         user_id=user.id,
         token=refresh_token_str,
@@ -136,7 +136,7 @@ def refresh_token(
         RefreshToken.user_id == user_id
     ).first()
     
-    if not db_token or db_token.expires_at < datetime.datetime.utcnow():
+    if not db_token or db_token.expires_at < datetime.datetime.now(datetime.timezone.utc):
         if db_token:
             db.delete(db_token)
             db.commit()
@@ -148,7 +148,7 @@ def refresh_token(
     new_access_token = create_access_token(user_id)
     new_refresh_token_str = create_refresh_token(user_id)
     
-    new_expires = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    new_expires = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
     new_db_refresh = RefreshToken(
         user_id=user_id,
         token=new_refresh_token_str,

@@ -1,0 +1,17 @@
+# Frontend Dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Backend Dependencies
+backend/__pycache__/
+backend/.pytest_cache/
+backend/test.db
+backend/codeflow.db
+backend/.env
+
+# Local logs & OS
+logs/
+.DS_Store
+Thumbs.db

@@ -4,6 +4,9 @@ from sqlalchemy import String, DateTime, ForeignKey, Integer, Float, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
+_utcnow = lambda: datetime.datetime.now(datetime.timezone.utc)
+
+
 class UsageAnalytics(Base):
     __tablename__ = "usage_analytics"
 
@@ -11,7 +14,8 @@ class UsageAnalytics(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     action_type: Mapped[str] = mapped_column(String(100), nullable=False)  # "chat", "generate", "review", "docs"
     language: Mapped[str] = mapped_column(String(50), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
 
 class APIUsage(Base):
     __tablename__ = "api_usages"
@@ -24,17 +28,18 @@ class APIUsage(Base):
     completion_tokens: Mapped[int] = mapped_column(Integer, default=0)
     estimated_cost: Mapped[float] = mapped_column(Float, default=0.0)
     response_time_ms: Mapped[int] = mapped_column(Integer, default=0)  # Execution time in ms
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)  # Nullable for system tasks or failures
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)  # Nullable for system tasks
     action: Mapped[str] = mapped_column(String(255), nullable=False)  # "login", "register", "create_workspace", "admin_action"
     details: Mapped[str] = mapped_column(Text, nullable=True)
     ip_address: Mapped[str] = mapped_column(String(50), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     # Relationship
     user: Mapped["User"] = relationship(back_populates="audit_logs")
