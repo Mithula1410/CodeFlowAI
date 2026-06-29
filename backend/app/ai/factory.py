@@ -22,28 +22,20 @@ def get_ai_provider(provider_name: str = None) -> BaseAIProvider:
     if provider_name in _providers:
         return _providers[provider_name]
         
-    try:
-        if provider_name == "gemini":
-            if not settings.GEMINI_API_KEY:
-                raise ValueError("GEMINI_API_KEY is not set.")
-            provider = GeminiAIProvider()
-        elif provider_name == "openai":
-            if not settings.OPENAI_API_KEY:
-                raise ValueError("OPENAI_API_KEY is not set.")
-            provider = OpenAIProvider()
-        elif provider_name == "claude":
-            if not settings.CLAUDE_API_KEY:
-                raise ValueError("CLAUDE_API_KEY is not set.")
-            provider = ClaudeAIProvider()
-        else:
-            provider = MockAIProvider()
-    except Exception as e:
-        logger.warning(
-            f"Failed to initialize requested provider '{provider_name}': {str(e)}. "
-            "Falling back to Mock AI Provider."
-        )
+    if provider_name == "gemini":
+        if not settings.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY is not set.")
+        provider = GeminiAIProvider()
+    elif provider_name == "openai":
+        if not settings.OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is not set.")
+        provider = OpenAIProvider()
+    elif provider_name == "claude":
+        if not settings.CLAUDE_API_KEY:
+            raise ValueError("CLAUDE_API_KEY is not set.")
+        provider = ClaudeAIProvider()
+    else:
         provider = MockAIProvider()
-        provider_name = "mock"
 
     _providers[provider_name] = provider
     return provider

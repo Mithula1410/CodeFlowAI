@@ -49,6 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logger_error("Session expired or invalid token.", error);
           logout();
         }
+      } else {
+        setAxiosHeader(null);
       }
       setLoading(false);
     };
@@ -62,7 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(accessToken);
     setAxiosHeader(accessToken);
     try {
-      const response = await axios.get('/api/v1/auth/me');
+      const response = await axios.get('/api/v1/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
       setUser(response.data);
     } catch (e) {
       logout();

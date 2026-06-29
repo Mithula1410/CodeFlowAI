@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart, Pie
+  BarChart, Bar, Cell
 } from 'recharts';
 import { Cpu, DollarSign, Languages, Activity } from 'lucide-react';
 
@@ -51,9 +51,9 @@ const Analytics: React.FC = () => {
   }));
 
   return (
-    <div className="p-6 md:p-8 flex flex-col gap-6 max-w-6xl mx-auto">
-      <div>
-        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+    <div className="p-6 md:p-8 flex flex-col gap-6 max-w-6xl mx-auto bg-gradient-to-br from-[#07060f] via-[#090812] to-[#040307] min-h-full">
+      <div className="border-b border-white/5 pb-5">
+        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
           Workspace Telemetry
         </h2>
         <p className="text-xs text-gray-400 mt-1">Detailed statistics, estimated API usage costs, and language distributions.</p>
@@ -61,32 +61,32 @@ const Analytics: React.FC = () => {
 
       {/* Analytics Card headers */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 border border-border glass-panel rounded-2xl flex items-center gap-4">
+        <div className="p-4 border border-white/5 bg-[#090810]/40 backdrop-blur-md rounded-2xl flex items-center gap-4">
           <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
             <Cpu className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase">Total AI Requests</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total AI Requests</span>
             <span className="text-xl font-extrabold text-white mt-0.5 block">{data?.total_requests || 0}</span>
           </div>
         </div>
 
-        <div className="p-4 border border-border glass-panel rounded-2xl flex items-center gap-4">
+        <div className="p-4 border border-white/5 bg-[#090810]/40 backdrop-blur-md rounded-2xl flex items-center gap-4">
           <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
             <DollarSign className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase">Estimated Costs</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Estimated Costs</span>
             <span className="text-xl font-extrabold text-white mt-0.5 block">${data?.estimated_cost || '0.00'}</span>
           </div>
         </div>
 
-        <div className="p-4 border border-border glass-panel rounded-2xl flex items-center gap-4">
+        <div className="p-4 border border-white/5 bg-[#090810]/40 backdrop-blur-md rounded-2xl flex items-center gap-4">
           <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
             <Languages className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase">Primary Language</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Primary Language</span>
             <span className="text-xl font-extrabold text-white mt-0.5 block">
               {langData.length > 0 ? langData[0].name.toUpperCase() : 'None'}
             </span>
@@ -96,7 +96,7 @@ const Analytics: React.FC = () => {
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Trend Area Chart */}
-        <div className="p-5 border border-border glass-panel rounded-2xl">
+        <div className="p-5 border border-white/5 bg-[#090810]/40 backdrop-blur-md rounded-2xl">
           <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Request Calls Trend (Daily)</h4>
           <div className="h-64 w-full">
             {trendData.length > 0 ? (
@@ -121,7 +121,7 @@ const Analytics: React.FC = () => {
         </div>
 
         {/* Action Type Bar Chart */}
-        <div className="p-5 border border-border glass-panel rounded-2xl">
+        <div className="p-5 border border-white/5 bg-[#090810]/40 backdrop-blur-md rounded-2xl">
           <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Distribution by Action Type</h4>
           <div className="h-64 w-full">
             {actionData.length > 0 ? (
@@ -144,14 +144,14 @@ const Analytics: React.FC = () => {
         </div>
 
         {/* Language distribution list */}
-        <div className="p-5 border border-border glass-panel rounded-2xl md:col-span-2">
+        <div className="p-5 border border-white/5 bg-[#090810]/40 backdrop-blur-md rounded-2xl md:col-span-2">
           <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Languages Breakdown</h4>
           {langData.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {langData.map((item, idx) => (
-                <div key={idx} className="p-4 border border-border/60 rounded-xl bg-white/[0.01]">
-                  <span className="text-[10px] text-gray-400 uppercase tracking-wider block">{item.name}</span>
-                  <span className="text-lg font-bold text-white mt-1 block">{item.value} files</span>
+                <div key={idx} className="p-4 border border-white/5 bg-[#090810]/60 rounded-xl">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-bold">{item.name}</span>
+                  <span className="text-lg font-extrabold text-white mt-1 block">{item.value} files</span>
                 </div>
               ))}
             </div>

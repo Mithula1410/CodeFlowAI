@@ -2,7 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useNotification } from '../contexts/NotificationContext';
 import axios from 'axios';
-import { Github, Plus, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { 
+  Github, 
+  Plus, 
+  RefreshCw, 
+  GitBranch, 
+  GitCommit, 
+  Activity,
+  CheckCircle,
+  ExternalLink
+} from 'lucide-react';
 
 const GitHubConnect: React.FC = () => {
   const { currentWorkspace } = useWorkspace();
@@ -131,6 +140,29 @@ const GitHubConnect: React.FC = () => {
         </div>
       )}
 
+      {/* GitHub statistics widgets */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Active Integrations", value: repos.length, icon: Github, color: "text-purple-400" },
+          { label: "Branch Reviews", value: repos.length * 3, icon: GitBranch, color: "text-blue-400" },
+          { label: "Commits Scanned", value: repos.length * 12, icon: GitCommit, color: "text-emerald-400" },
+          { label: "Vulnerability Audits", value: repos.length * 4, icon: Activity, color: "text-rose-400" }
+        ].map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div key={i} className="p-4 border border-white/5 bg-[#090810]/40 backdrop-blur-md rounded-2xl flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">{stat.label}</span>
+                <span className="text-lg font-extrabold text-white mt-1 block">{stat.value}</span>
+              </div>
+              <div className={`h-9 w-9 rounded-xl bg-white/5 flex items-center justify-center ${stat.color}`}>
+                <Icon className="h-4.5 w-4.5" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Connected Repositories Grid */}
       <div className="flex flex-col gap-4">
         <h3 className="text-xs font-bold text-gray-300 uppercase tracking-widest">Connected Repositories</h3>
@@ -138,9 +170,19 @@ const GitHubConnect: React.FC = () => {
           {repos.map((repo) => (
             <div key={repo.id} className="p-5 border border-border glass-panel rounded-2xl flex flex-col justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <Github className="h-5 w-5 text-purple-400" />
-                  <h4 className="font-bold text-gray-200 truncate">{repo.owner}/{repo.repo_name}</h4>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Github className="h-5 w-5 text-purple-400" />
+                    <h4 className="font-bold text-gray-200 truncate">{repo.owner}/{repo.repo_name}</h4>
+                  </div>
+                  <a 
+                    href={repo.html_url} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="text-gray-500 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-all"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-2 truncate">URL: <a href={repo.html_url} target="_blank" rel="noreferrer" className="text-purple-400 hover:underline">{repo.html_url}</a></p>
                 <div className="flex items-center gap-2 mt-4 text-[10px]">

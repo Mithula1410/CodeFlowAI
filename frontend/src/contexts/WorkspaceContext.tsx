@@ -68,10 +68,22 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setLoading(true);
     try {
       const response = await axios.get('/api/v1/workspaces/');
-      setWorkspaces(response.data);
-      if (response.data.length > 0 && !currentWorkspace) {
-        // Auto select first workspace
-        await selectWorkspace(response.data[0].id);
+      let currentWorkspaces = response.data;
+      
+      // 1. If no workspace exists, automatically create a default workspace
+      if (currentWorkspaces.length === 0) {
+        const createRes = await axios.post('/api/v1/workspaces/', {
+          name: "My Workspace",
+          description: "Default workspace"
+        });
+        currentWorkspaces = [createRes.data];
+      }
+      
+      setWorkspaces(currentWorkspaces);
+      
+      // Select the first workspace
+      if (currentWorkspaces.length > 0) {
+        await selectWorkspace(currentWorkspaces[0].id);
       }
     } catch (e) {
       console.error("Failed to load workspaces", e);
@@ -87,16 +99,68 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const selectWorkspace = async (workspaceId: string) => {
     try {
       const res = await axios.get(`/api/v1/workspaces/${workspaceId}`);
-      setCurrentWorkspace(res.data);
-      if (res.data.projects && res.data.projects.length > 0) {
-        setCurrentProject(res.data.projects[0]);
+      let workspaceDetails = res.data;
+      
+      // 2. If no project exists, automatically create a default project
+      if (!workspaceDetails.projects || workspaceDetails.projects.length === 0) {
+        const projRes = await axios.post(`/api/v1/projects/workspace/${workspaceId}`, {
+          name: "My First Project",
+          description: "Default project"
+        });
+        
+        // Fetch workspace again to get updated projects list
+        const refreshRes = await axios.get(`/api/v1/workspaces/${workspaceId}`);
+        workspaceDetails = refreshRes.data;
+      }
+      
+      setCurrentWorkspace(workspaceDetails);
+      
+      let project = workspaceDetails.projects && workspaceDetails.projects.length > 0 
+        ? workspaceDetails.projects[0] 
+        : null;
+        
+      if (project) {
+        // 3. If no files exist, automatically create a starter file
+        if (!project.files || project.files.length === 0) {
+          const defaultFiles = [
+            { path: "main.py", content: "def main():\n    print(\"Hello, CodeFlow!\")\n\nif __name__ == '__main__':\n    main()\n" },
+            { path: "index.js", content: "console.log(\"Hello, CodeFlow!\");\n" },
+            { path: "App.tsx", content: "import React from 'react';\n\nexport default function App() {\n  return <h1>Hello, CodeFlow!</h1>;\n}\n" },
+            { path: "Main.java", content: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, CodeFlow!\");\n    }\n}\n" }
+          ];
+          
+          // Create the starter files
+          const createdFiles = [];
+          for (const defaultFile of defaultFiles) {
+            try {
+              const fileRes = await axios.post(`/api/v1/files/project/${project.id}`, defaultFile);
+              createdFiles.push(fileRes.data);
+            } catch (fileErr) {
+              console.error("Failed to create starter file", defaultFile.path, fileErr);
+            }
+          }
+          project = { ...project, files: createdFiles };
+        }
+        
+        setCurrentProject(project);
+        
+        // 4. Automatically open the first file in the Monaco Editor
+        if (project.files && project.files.length > 0) {
+          const firstFile = project.files[0];
+          setOpenTabs([firstFile]);
+          setActiveTabId(firstFile.id);
+          setCurrentFile(firstFile);
+        } else {
+          setOpenTabs([]);
+          setActiveTabId(null);
+          setCurrentFile(null);
+        }
       } else {
         setCurrentProject(null);
+        setOpenTabs([]);
+        setActiveTabId(null);
+        setCurrentFile(null);
       }
-      // Reset files state
-      setOpenTabs([]);
-      setActiveTabId(null);
-      setCurrentFile(null);
     } catch (e) {
       console.error("Error fetching workspace details", e);
     }

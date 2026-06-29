@@ -1,5 +1,6 @@
 import json
 import logging
+import traceback
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from app.core.websocket import manager
 from app.ai.factory import get_ai_provider
@@ -61,7 +62,7 @@ async def websocket_endpoint(
                         "status": False
                     }))
                 except Exception as e:
-                    logger.error(f"WebSocket Chat error: {str(e)}")
+                    logger.error(f"WebSocket Chat error:\n{traceback.format_exc()}")
                     await websocket.send_text(json.dumps({
                         "type": "ERROR",
                         "message": f"Chat failure: {str(e)}"

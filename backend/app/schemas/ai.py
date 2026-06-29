@@ -25,6 +25,11 @@ class CodeGenerateResponse(BaseModel):
     metrics: Optional[AIMetrics] = None
 
 # Code Review
+class CodeReviewRequest(BaseModel):
+    code: str
+    language: str = "python"
+    provider: Optional[str] = None
+
 class ReviewIssueDetail(BaseModel):
     file_path: str
     line_number: int

@@ -1,15 +1,20 @@
+import logging
+import traceback
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.core.deps import get_current_active_user
 from app.models.user import User
+
+logger = logging.getLogger("app")
 from app.models.analytics import APIUsage, UsageAnalytics
 from app.schemas.ai import (
     CodeGenerateRequest,
     CodeGenerateResponse,
+    CodeReviewRequest,
+    CodeReviewResponse,
     DocumentationRequest,
     DocumentationResponse,
-    CodeReviewResponse
 )
 from app.ai.factory import get_ai_provider
 
@@ -54,6 +59,7 @@ async def generate_code(
         return result
     except Exception as e:
         db.rollback()
+        logger.error(f"[/ai/generate] Unhandled exception:\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI Code Generation Error: {str(e)}"
@@ -61,15 +67,13 @@ async def generate_code(
 
 @router.post("/review", response_model=CodeReviewResponse)
 async def review_code(
-    code: str,
-    language: str = "python",
-    provider: str = None,
+    payload: CodeReviewRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     try:
-        ai_provider = get_ai_provider(provider)
-        result = await ai_provider.review_code(code, language)
+        ai_provider = get_ai_provider(payload.provider)
+        result = await ai_provider.review_code(payload.code, payload.language)
         
         metrics = result.get("metrics", {})
         if metrics:
@@ -85,13 +89,14 @@ async def review_code(
         db.add(UsageAnalytics(
             user_id=current_user.id,
             action_type="review",
-            language=language
+            language=payload.language
         ))
         db.commit()
         
         return result
     except Exception as e:
         db.rollback()
+        logger.error(f"[/ai/review] Unhandled exception:\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail=f"AI Code Review Error: {str(e)}"
@@ -128,6 +133,7 @@ async def generate_docs(
         return result
     except Exception as e:
         db.rollback()
+        logger.error(f"[/ai/documentation] Unhandled exception:\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail=f"AI Documentation Error: {str(e)}"

@@ -1,16 +1,16 @@
 import time
 import json
+import logging
+import traceback
 from typing import Dict, Any, List, AsyncGenerator
 
 from google import genai
-from google.genai import types as genai_types
+from google.genai import types
 
 from app.ai.base import BaseAIProvider
 from app.core.config import settings
-from app.core.logging_config import logger
 
-# Default model for all Gemini operations
-_DEFAULT_MODEL = "gemini-2.0-flash"
+logger = logging.getLogger("app")
 
 
 class GeminiAIProvider(BaseAIProvider):
@@ -18,16 +18,19 @@ class GeminiAIProvider(BaseAIProvider):
 
     def __init__(self):
         if settings.GEMINI_API_KEY:
-            self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            api_key = settings.GEMINI_API_KEY.strip('"').strip("'")
+            self._client = genai.Client(api_key=api_key)
+            self._model_name = settings.DEFAULT_AI_MODEL or "gemini-2.5-flash"
             self._configured = True
+            logger.info(f"Gemini provider initialized with model: {self._model_name}")
         else:
-            self._client = None
             self._configured = False
+            self._client = None
             logger.warning("Gemini API Key is missing. Gemini provider will not function.")
 
     def _ensure_configured(self):
-        if not self._configured or self._client is None:
-            raise ValueError("Gemini provider is not configured. Please supply GEMINI_API_KEY.")
+        if not self._configured:
+            raise ValueError("Gemini provider is not configured. Please supply GEMINI_API_KEY in .env")
 
     # -------------------------------------------------------------------------
     # Code Generation
@@ -43,19 +46,23 @@ class GeminiAIProvider(BaseAIProvider):
             f"using the {framework} framework. Response MUST be raw JSON with schema: "
             '{"code": "...", "explanation": "..."} — no markdown fences.'
         )
-        user_message = prompt
 
-        response = self._client.models.generate_content(
-            model=_DEFAULT_MODEL,
-            contents=user_message,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=temperature,
-                response_mime_type="application/json",
-            ),
-        )
+        try:
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=temperature,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Gemini generate_code API error:\n{traceback.format_exc()}")
+            raise RuntimeError(f"Gemini API call failed: {e}") from e
 
         latency = int((time.time() - t0) * 1000)
+
         try:
             data = json.loads(response.text)
         except Exception:
@@ -71,7 +78,7 @@ class GeminiAIProvider(BaseAIProvider):
             "explanation": data.get("explanation", ""),
             "metrics": {
                 "provider": "gemini",
-                "model": _DEFAULT_MODEL,
+                "model": self._model_name,
                 "prompt_tokens": p_tokens,
                 "completion_tokens": c_tokens,
                 "cost": round(cost, 6),
@@ -95,27 +102,26 @@ class GeminiAIProvider(BaseAIProvider):
             '"category":"security|performance|style|bug","description":"...","suggested_fix":"..."}]}'
         )
 
-        response = self._client.models.generate_content(
-            model=_DEFAULT_MODEL,
-            contents=f"Code to review:\n```{language}\n{code}\n```",
-            config=genai_types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-            ),
-        )
+        try:
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=f"Code to review:\n```{language}\n{code}\n```",
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Gemini review_code API error:\n{traceback.format_exc()}")
+            raise RuntimeError(f"Gemini API call failed: {e}") from e
 
         latency = int((time.time() - t0) * 1000)
+
         try:
             data = json.loads(response.text)
         except Exception:
-            data = {
-                "score_overall": 50.0,
-                "score_security": 50.0,
-                "score_performance": 50.0,
-                "score_readability": 50.0,
-                "score_maintainability": 50.0,
-                "issues": [],
-            }
+            logger.error(f"Failed to parse Gemini review response as JSON: {response.text}")
+            raise ValueError(f"Failed to parse Gemini response as JSON: {response.text[:200]}")
 
         meta = response.usage_metadata
         p_tokens = meta.prompt_token_count if meta else 0
@@ -131,7 +137,7 @@ class GeminiAIProvider(BaseAIProvider):
             "issues": data.get("issues", []),
             "metrics": {
                 "provider": "gemini",
-                "model": _DEFAULT_MODEL,
+                "model": self._model_name,
                 "prompt_tokens": p_tokens,
                 "completion_tokens": c_tokens,
                 "cost": round(cost, 6),
@@ -152,20 +158,26 @@ class GeminiAIProvider(BaseAIProvider):
             '"severity":"critical|warning","description":"...","suggested_fix":"..."}]}'
         )
 
-        response = self._client.models.generate_content(
-            model=_DEFAULT_MODEL,
-            contents=f"Code:\n{code}",
-            config=genai_types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-            ),
-        )
+        try:
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=f"Code:\n{code}",
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Gemini detect_bugs API error:\n{traceback.format_exc()}")
+            raise RuntimeError(f"Gemini API call failed: {e}") from e
 
         latency = int((time.time() - t0) * 1000)
+
         try:
             data = json.loads(response.text)
         except Exception:
-            data = {"bugs": []}
+            logger.error(f"Failed to parse Gemini bug scan response as JSON: {response.text}")
+            raise ValueError(f"Failed to parse Gemini response as JSON: {response.text[:200]}")
 
         meta = response.usage_metadata
         p_tokens = meta.prompt_token_count if meta else 0
@@ -176,7 +188,7 @@ class GeminiAIProvider(BaseAIProvider):
             "bugs": data.get("bugs", []),
             "metrics": {
                 "provider": "gemini",
-                "model": _DEFAULT_MODEL,
+                "model": self._model_name,
                 "prompt_tokens": p_tokens,
                 "completion_tokens": c_tokens,
                 "cost": round(cost, 6),
@@ -196,16 +208,21 @@ class GeminiAIProvider(BaseAIProvider):
             'Return ONLY raw JSON: {"documentation":"Markdown text here"}'
         )
 
-        response = self._client.models.generate_content(
-            model=_DEFAULT_MODEL,
-            contents=f"Code:\n{code}",
-            config=genai_types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-            ),
-        )
+        try:
+            response = self._client.models.generate_content(
+                model=self._model_name,
+                contents=f"Code:\n{code}",
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Gemini generate_documentation API error:\n{traceback.format_exc()}")
+            raise RuntimeError(f"Gemini API call failed: {e}") from e
 
         latency = int((time.time() - t0) * 1000)
+
         try:
             data = json.loads(response.text)
         except Exception:
@@ -220,7 +237,7 @@ class GeminiAIProvider(BaseAIProvider):
             "documentation": data.get("documentation", ""),
             "metrics": {
                 "provider": "gemini",
-                "model": _DEFAULT_MODEL,
+                "model": self._model_name,
                 "prompt_tokens": p_tokens,
                 "completion_tokens": c_tokens,
                 "cost": round(cost, 6),
@@ -235,19 +252,25 @@ class GeminiAIProvider(BaseAIProvider):
         self._ensure_configured()
         t0 = time.time()
 
-        # Build history in google-genai Content format
+        # Build history (all but last message)
         history = []
         for msg in messages[:-1]:
             role = "user" if msg["role"] == "user" else "model"
-            history.append(genai_types.Content(role=role, parts=[genai_types.Part(text=msg["content"])]))
+            history.append(
+                types.Content(role=role, parts=[types.Part(text=msg["content"])])
+            )
 
-        chat = self._client.chats.create(
-            model=_DEFAULT_MODEL,
-            config=genai_types.GenerateContentConfig(system_instruction=system_prompt),
-            history=history,
-        )
-        last_message = messages[-1]["content"]
-        response = chat.send_message(last_message)
+        try:
+            chat_session = self._client.chats.create(
+                model=self._model_name,
+                config=types.GenerateContentConfig(system_instruction=system_prompt),
+                history=history,
+            )
+            last_message = messages[-1]["content"]
+            response = chat_session.send_message(last_message)
+        except Exception as e:
+            logger.error(f"Gemini chat API error:\n{traceback.format_exc()}")
+            raise RuntimeError(f"Gemini API call failed: {e}") from e
 
         latency = int((time.time() - t0) * 1000)
         meta = response.usage_metadata
@@ -259,7 +282,7 @@ class GeminiAIProvider(BaseAIProvider):
             "message": response.text,
             "metrics": {
                 "provider": "gemini",
-                "model": _DEFAULT_MODEL,
+                "model": self._model_name,
                 "prompt_tokens": p_tokens,
                 "completion_tokens": c_tokens,
                 "cost": round(cost, 6),
@@ -278,14 +301,20 @@ class GeminiAIProvider(BaseAIProvider):
         history = []
         for msg in messages[:-1]:
             role = "user" if msg["role"] == "user" else "model"
-            history.append(genai_types.Content(role=role, parts=[genai_types.Part(text=msg["content"])]))
+            history.append(
+                types.Content(role=role, parts=[types.Part(text=msg["content"])])
+            )
 
-        chat = self._client.chats.create(
-            model=_DEFAULT_MODEL,
-            config=genai_types.GenerateContentConfig(system_instruction=system_prompt),
-            history=history,
-        )
-
-        for chunk in chat.send_message_stream(messages[-1]["content"]):
-            if chunk.text:
-                yield chunk.text
+        try:
+            chat_session = self._client.chats.create(
+                model=self._model_name,
+                config=types.GenerateContentConfig(system_instruction=system_prompt),
+                history=history,
+            )
+            last_message = messages[-1]["content"]
+            for chunk in chat_session.send_message_stream(last_message):
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            logger.error(f"Gemini chat_stream API error:\n{traceback.format_exc()}")
+            raise RuntimeError(f"Gemini streaming API call failed: {e}") from e
